@@ -59,6 +59,8 @@ def load_data(image_dir, annotation_file):
                            bboxes_data[1]/float(height),
                            bboxes_data[2]/float(width),
                            bboxes_data[3]/float(height)]
+            bboxes_data = [bboxes_data[0] + bboxes_data[2] / 2, bboxes_data[1] + bboxes_data[3] / 2,
+                           bboxes_data[2], bboxes_data[3]]
             bboxes.append(bboxes_data)
             class_id = ann['category_id']
             labels.append(coco91_to_coco80_index[class_id])
