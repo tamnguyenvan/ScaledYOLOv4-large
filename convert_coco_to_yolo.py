@@ -79,7 +79,7 @@ def create_dataset(image_src, out_dir, data, training=True):
         img_path = os.path.join(image_src, img_data['filename'])
         img_out_path = os.path.join(image_dir, img_data['filename'])
         label_path = os.path.join(label_dir, img_data['filename'][:-4] + '.txt')
-        shutil.copy(img_path, img_out_path)
+        shutil.move(img_path, img_out_path)
         with open(label_path, 'wt') as f:
             for bbox, label in zip(img_data['bboxes'], img_data['labels']):
                 f.write(' '.join(map(str, [label] + bbox)) + '\n')
