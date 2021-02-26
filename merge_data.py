@@ -63,6 +63,9 @@ def main():
             new_label_path = os.path.join(out_split_label_dir, label_filename)
             with open(new_label_path, 'wt') as f:
                 for row in annotation:
+                    if int(row[0]) < 0:
+                        print(f'Found negative id: {row[0]} in {label_path}')
+                        continue
                     row = [int(row[0])] + row[1:]
                     f.write(' '.join(map(str, row)) + '\n')
             logging.info(f'Copied {label_path} to {new_label_path}')
