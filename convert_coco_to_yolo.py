@@ -33,6 +33,30 @@ def load_data(image_dir, annotation_file):
     random.shuffle(img_ids)
     coco_data = {}
     num_images = len(img_ids)
+
+    # Parse argument to get list of interesting classes.
+    if args.include_classes:
+        include_classes = set()
+        if os.path.isfile(args.include_classes):
+            include_classes = [int(x.strip()) for x in open(args.include_classes)]
+        elif isinstance(args.include_classes, str):
+            groups = args.include_classes.split(';')
+            for inl_classes in groups:
+                if '..' in inl_classes:
+                    start, end = inl_classes.split('..')[:2]
+                    start, end = int(start), int(end)
+                    one_include_classes = set(range(start, end+1))
+                    include_classes.update(one_include_classes)
+                elif ',' in inl_classes:
+                    one_include_classes = set(map(int, inl_classes.split(',')))
+                    include_classes.update(one_include_classes)
+    else:
+        include_classes = None
+
+    if include_classes is not None:
+        print('Including classes: {}'.format(include_classes))
+
+    ignore_bbox_cnt = 0
     for index, img_id in enumerate(img_ids):
         if index % 100 == 0:
             print("Reading images: %d / %d "%(index, num_images))
@@ -54,20 +78,27 @@ def load_data(image_dir, annotation_file):
         ann_ids = coco.getAnnIds(imgIds=img_id,catIds=cat_ids)
         anns = coco.loadAnns(ann_ids)
         for ann in anns:
-            bboxes_data = ann['bbox']
-            bboxes_data = [bboxes_data[0]/float(width),
-                           bboxes_data[1]/float(height),
-                           bboxes_data[2]/float(width),
-                           bboxes_data[3]/float(height)]
-            bboxes_data = [bboxes_data[0] + bboxes_data[2] / 2, bboxes_data[1] + bboxes_data[3] / 2,
-                           bboxes_data[2], bboxes_data[3]]
-            bboxes.append(bboxes_data)
             class_id = ann['category_id']
-            labels.append(coco91_to_coco80_index[class_id])
+            coco80_index = coco91_to_coco80_index[class_id]
+            if include_classes is None or coco80_index in include_classes:
+                bboxes_data = ann['bbox']
+                bboxes_data = [bboxes_data[0]/float(width),
+                            bboxes_data[1]/float(height),
+                            bboxes_data[2]/float(width),
+                            bboxes_data[3]/float(height)]
+                bboxes_data = [bboxes_data[0] + bboxes_data[2] / 2, bboxes_data[1] + bboxes_data[3] / 2,
+                            bboxes_data[2], bboxes_data[3]]
+                bboxes.append(bboxes_data)
+                labels.append(coco80_index)
+            else:
+                ignore_bbox_cnt += 1
 
         coco_data[img_id]['bboxes'] = bboxes
         coco_data[img_id]['labels'] = labels
 
+    if ignore_bbox_cnt > 0:
+        print('Ignored {} bounding boxes'.format(ignore_bbox_cnt))
+    
     return coco_data
 
 
@@ -98,6 +129,7 @@ if __name__ == "__main__":
     parser.add_argument('--image_dir', type=str, help='Data dir')
     parser.add_argument('--ann_file', type=str, help='Path to annotation file')
     parser.add_argument('--out_dir', type=str, help='Output dir')
+    parser.add_argument('--include_classes', type=str, default=None, help='Include classes. 1..5 or 1,2,3,4; or a file')
     parser.add_argument('--train', action='store_true')
     args = parser.parse_args()
     print(args)
